@@ -1,4 +1,5 @@
 const { getDatabase } = require('../config/database');
+const { ObjectId } = require('mongodb');
 
 class Product {
   static collection() {
@@ -22,12 +23,15 @@ class Product {
   }
 
   static async findById(id) {
-    return await this.collection().findOne({ _id: id, isActive: true });
+    return await this.collection().findOne({ 
+      _id: new ObjectId(id), 
+      isActive: true 
+    });
   }
 
   static async update(id, updateData) {
     await this.collection().updateOne(
-      { _id: id },
+      { _id: new ObjectId(id) },
       { 
         $set: { 
           ...updateData,
@@ -40,7 +44,7 @@ class Product {
 
   static async delete(id) {
     await this.collection().updateOne(
-      { _id: id },
+      { _id: new ObjectId(id) },
       { 
         $set: { 
           isActive: false,
@@ -52,7 +56,7 @@ class Product {
 
   static async updateStock(productId, quantity) {
     await this.collection().updateOne(
-      { _id: productId },
+      { _id: new ObjectId(productId) },
       { $inc: { stock: -quantity } }
     );
   }

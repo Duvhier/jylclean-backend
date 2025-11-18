@@ -1,5 +1,6 @@
 const { getDatabase } = require('../config/database');
 const { generateSaleNumber } = require('../utils/helpers');
+const { ObjectId } = require('mongodb');
 
 class Sale {
   static collection() {
@@ -28,13 +29,13 @@ class Sale {
 
   static async findByUserId(userId) {
     return await this.collection()
-      .find({ userId })
+      .find({ userId: new ObjectId(userId) })
       .sort({ createdAt: -1 })
       .toArray();
   }
 
   static async findById(id) {
-    return await this.collection().findOne({ _id: id });
+    return await this.collection().findOne({ _id: new ObjectId(id) });
   }
 
   static async updateStatus(id, status) {
@@ -45,7 +46,7 @@ class Sale {
     }
 
     await this.collection().updateOne(
-      { _id: id },
+      { _id: new ObjectId(id) },
       { 
         $set: { 
           status,

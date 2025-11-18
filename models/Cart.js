@@ -7,11 +7,11 @@ class Cart {
   }
 
   static async getOrCreateCart(userId) {
-    let cart = await this.collection().findOne({ userId });
+    let cart = await this.collection().findOne({ userId: new ObjectId(userId) });
     
     if (!cart) {
       cart = {
-        userId,
+        userId: new ObjectId(userId),
         items: [],
         total: 0,
         createdAt: new Date(),
@@ -29,7 +29,7 @@ class Cart {
     
     // Verificar que el producto existe
     const product = await db.collection('products').findOne({ 
-      _id: productId, 
+      _id: new ObjectId(productId), 
       isActive: true 
     });
     
@@ -54,7 +54,7 @@ class Cart {
     } else {
       // Agregar nuevo item
       cart.items.push({
-        productId,
+        productId: new ObjectId(productId),
         name: product.name,
         price: product.price,
         quantity,
@@ -67,7 +67,7 @@ class Cart {
     cart.updatedAt = new Date();
 
     await this.collection().updateOne(
-      { userId },
+      { userId: new ObjectId(userId) },
       { $set: cart }
     );
 
@@ -95,7 +95,7 @@ class Cart {
       // Verificar stock
       const db = getDatabase();
       const product = await db.collection('products').findOne({ 
-        _id: productId, 
+        _id: new ObjectId(productId), 
         isActive: true 
       });
 
@@ -111,7 +111,7 @@ class Cart {
     cart.updatedAt = new Date();
 
     await this.collection().updateOne(
-      { userId },
+      { userId: new ObjectId(userId) },
       { $set: cart }
     );
 
@@ -130,7 +130,7 @@ class Cart {
     cart.updatedAt = new Date();
 
     await this.collection().updateOne(
-      { userId },
+      { userId: new ObjectId(userId) },
       { $set: cart }
     );
 
@@ -139,7 +139,7 @@ class Cart {
 
   static async clearCart(userId) {
     await this.collection().updateOne(
-      { userId },
+      { userId: new ObjectId(userId) },
       { 
         $set: { 
           items: [],

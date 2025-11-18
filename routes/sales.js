@@ -10,15 +10,13 @@ const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Todas las rutas requieren autenticación
 router.use(protect);
 
-// Rutas accesibles para todos los usuarios autenticados
 router.get('/my-sales', getMySales);
 router.get('/:id', getSale);
 router.post('/', createSale);
 
-// Rutas solo para Admin y SuperUser
+// Solo Admin y SuperUser pueden ver todas las ventas y cambiar estados
 router.get('/', authorize('Admin', 'SuperUser'), getSales);
 router.put('/:id/status', authorize('Admin', 'SuperUser'), updateSaleStatus);
 
