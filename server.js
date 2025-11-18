@@ -5,6 +5,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Importar la configuración de la base de datos
+const { connectToDatabase } = require('./config/database');
+
 // Configuración MEJORADA de CORS
 const corsOptions = {
   origin: function (origin, callback) {
@@ -59,31 +62,68 @@ app.use((req, res, next) => {
   next();
 });
 
-// El resto de tu código permanece igual...
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Conectar a MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB conectado'))
-  .catch(err => console.error('❌ Error conectando a MongoDB:', err));
+// CONEXIÓN MEJORADA A MONGODB - AMBAS CONEXIONES
+Promise.all([
+  mongoose.connect(process.env.MONGODB_URI),
+  connectToDatabase()
+])
+.then(() => {
+  console.log('✅ MongoDB conectado via Mongoose');
+  console.log('✅ MongoDB conectado via MongoClient');
+})
+.catch(err => {
+  console.error('❌ Error conectando a MongoDB:', err);
+  process.exit(1);
+});
 
-// Health check endpoint
+// Health check endpoint MEJORADO
 app.get('/api/health', (req, res) => {
-    res.json({ 
-      success: true, 
-      message: 'Backend funcionando correctamente',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      cors: {
-        allowedOrigins: [
-          'https://jylcleanco-front.vercel.app',
-          'http://localhost:3000',
-          'http://localhost:5173'
-        ]
-      }
-    });
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  
+  res.json({ 
+    success: dbStatus === 'connected',
+    message: dbStatus === 'connected' 
+      ? 'Backend funcionando correctamente' 
+      : 'Backend activo pero sin conexión a DB',
+    database: dbStatus,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    cors: {
+      allowedOrigins: [
+        'https://jylcleanco-front.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:5173'
+      ]
+    }
   });
+});
+
+// Ruta de debug para productos (TEMPORAL - puedes remover después)
+app.get('/api/debug/products', async (req, res) => {
+  try {
+    const Product = require('./models/Product');
+    const productCount = await Product.collection().countDocuments();
+    const products = await Product.findAll();
+    
+    res.json({
+      success: true,
+      database: 'Conectado',
+      productCount: productCount,
+      products: products,
+      message: 'Endpoint de debug funcionando'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error en debug endpoint',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+    });
+  }
+});
 
 // Importar rutas
 const productRoutes = require('./routes/products');
@@ -110,7 +150,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       cart: '/api/cart',
       sales: '/api/sales',
-      users: '/api/users'
+      users: '/api/users',
+      debug: '/api/debug/products' // Temporal
     }
   });
 });

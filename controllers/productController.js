@@ -1,12 +1,15 @@
+// controllers/productController.js
 const Product = require('../models/Product');
 const { successResponse, errorResponse } = require('../utils/helpers');
 
 // Obtener todos los productos
 exports.getProducts = async (req, res) => {
   try {
-    const products = await Product.findAll();
+    // CAMBIO: Usar find() en lugar de findAll()
+    const products = await Product.find();
     res.json(successResponse(products, 'Productos obtenidos exitosamente'));
   } catch (error) {
+    console.error('Error en getProducts:', error);
     res.status(500).json(errorResponse('Error obteniendo productos'));
   }
 };
@@ -14,6 +17,7 @@ exports.getProducts = async (req, res) => {
 // Obtener un producto por ID
 exports.getProduct = async (req, res) => {
   try {
+    // CAMBIO: Usar findById() correctamente
     const product = await Product.findById(req.params.id);
     
     if (!product) {
@@ -22,10 +26,10 @@ exports.getProduct = async (req, res) => {
 
     res.json(successResponse(product, 'Producto obtenido exitosamente'));
   } catch (error) {
+    console.error('Error en getProduct:', error);
     res.status(500).json(errorResponse('Error obteniendo producto'));
   }
 };
-
 // Crear nuevo producto
 exports.createProduct = async (req, res) => {
   try {
