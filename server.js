@@ -1,75 +1,108 @@
+// server.js o app.js
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const { connectToDatabase } = require('./config/database');
-
-dotenv.config();
+const mongoose = require('mongoose');
+require('dotenv').config();
 
 const app = express();
 
-// Configuración CORS para el frontend
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // URLs de Vite
+// Configuración de CORS para producción
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://jylcleanco-front.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:5173', // Vite dev server
+    ];
+    
+    // Permitir requests sin origin (como Postman o curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Conectar a la base de datos
-connectToDatabase();
+// Conectar a MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB conectado'))
+  .catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
-// Importar y usar todas las rutas
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/sales', require('./routes/sales'));
-app.use('/api/cart', require('./routes/cart'));
-
-// Ruta de prueba
-app.get('/', (req, res) => {
+// Health check endpoint
+app.get('/api/health', (req, res) => {
   res.json({ 
-    message: '🚀 J&L Clean Co. Backend funcionando!',
-    version: '1.0.0',
+    success: true, 
+    message: 'Backend funcionando correctamente',
     timestamp: new Date().toISOString()
   });
 });
 
-// Ruta de health check
-app.get('/api/health', (req, res) => {
+// Importar rutas
+const productRoutes = require('./routes/products');
+const authRoutes = require('./routes/auth');
+const cartRoutes = require('./routes/cart');
+const salesRoutes = require('./routes/sales');
+const userRoutes = require('./routes/users');
+
+// Usar rutas
+app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/users', userRoutes);
+
+// Ruta raíz
+app.get('/', (req, res) => {
   res.json({ 
-    status: 'OK', 
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    message: 'JYL Clean Co API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      products: '/api/products',
+      auth: '/api/auth',
+      cart: '/api/cart',
+      sales: '/api/sales',
+      users: '/api/users'
+    }
   });
 });
 
-// Manejo de rutas no encontradas
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Ruta ${req.originalUrl} no encontrada`
+// Manejo de errores 404
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: 'Ruta no encontrada' 
   });
 });
 
 // Manejo de errores global
-app.use((error, req, res, next) => {
-  console.error('Error global:', error);
-  res.status(500).json({
-    success: false,
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
     message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🧼 Servidor J&L Clean Co. ejecutándose en puerto ${PORT}`);
-  console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🚀 Frontend: http://localhost:5173`);
-  console.log(`📚 API Base: http://localhost:${PORT}/api`);
-});
+
+// Para Vercel, exportar la app
+module.exports = app;
+
+// Para desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  });
+}
