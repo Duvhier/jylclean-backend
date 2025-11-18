@@ -1,8 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-// Removemos la importación del email por ahora
-// const { sendEmail } = require('../utils/email');
+const { getDatabase } = require('../config/database');
+const { ObjectId } = require('mongodb');
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -103,6 +103,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error en login:', error);
     res.status(500).json({
       success: false,
       message: 'Error en el servidor'
@@ -112,7 +113,11 @@ exports.login = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const db = getDatabase();
+    const user = await db.collection('users').findOne(
+      { _id: new ObjectId(req.user._id) },
+      { projection: { password: 0 } }
+    );
     
     if (!user) {
       return res.status(404).json({
@@ -131,6 +136,7 @@ exports.getMe = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error en getMe:', error);
     res.status(500).json({
       success: false,
       message: 'Error en el servidor'

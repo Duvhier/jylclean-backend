@@ -1,5 +1,46 @@
 const validator = require('validator');
 
+// Configuración de caracteres especiales permitidos
+const SPECIAL_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
+
+const passwordRequirements = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumbers: true,
+  requireSpecialChars: true,
+  specialChars: SPECIAL_CHARS
+};
+
+const validatePassword = (password) => {
+  const errors = [];
+  
+  if (password.length < passwordRequirements.minLength) {
+    errors.push(`mínimo ${passwordRequirements.minLength} caracteres`);
+  }
+  
+  if (passwordRequirements.requireUppercase && !/(?=.*[A-Z])/.test(password)) {
+    errors.push('al menos una letra mayúscula');
+  }
+  
+  if (passwordRequirements.requireLowercase && !/(?=.*[a-z])/.test(password)) {
+    errors.push('al menos una letra minúscula');
+  }
+  
+  if (passwordRequirements.requireNumbers && !/(?=.*\d)/.test(password)) {
+    errors.push('al menos un número');
+  }
+  
+  if (passwordRequirements.requireSpecialChars) {
+    const specialCharsRegex = new RegExp(`(?=.*[${passwordRequirements.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}])`);
+    if (!specialCharsRegex.test(password)) {
+      errors.push(`al menos un carácter especial (${passwordRequirements.specialChars})`);
+    }
+  }
+  
+  return errors;
+};
+
 const validateRegister = (req, res, next) => {
   const { name, email, password } = req.body;
   
@@ -11,13 +52,10 @@ const validateRegister = (req, res, next) => {
     return res.status(400).json({ message: 'Email no válido' });
   }
 
-  if (password.length < 8) {
-    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
-  }
-
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+  const passwordErrors = validatePassword(password);
+  if (passwordErrors.length > 0) {
     return res.status(400).json({ 
-      message: 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial' 
+      message: `La contraseña debe contener: ${passwordErrors.join(', ')}` 
     });
   }
 
@@ -38,4 +76,9 @@ const validateProduct = (req, res, next) => {
   next();
 };
 
-module.exports = { validateRegister, validateProduct };
+module.exports = { 
+  validateRegister, 
+  validateProduct,
+  validatePassword,
+  passwordRequirements 
+};
