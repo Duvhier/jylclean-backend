@@ -8,7 +8,7 @@ class Cart {
 
   static async getOrCreateCart(userId) {
     let cart = await this.collection().findOne({ userId: new ObjectId(userId) });
-    
+
     if (!cart) {
       cart = {
         userId: new ObjectId(userId),
@@ -20,19 +20,19 @@ class Cart {
       const result = await this.collection().insertOne(cart);
       cart._id = result.insertedId;
     }
-    
+
     return cart;
   }
 
   static async addItem(userId, productId, quantity = 1) {
     const db = getDatabase();
-    
+
     // Verificar que el producto existe
-    const product = await db.collection('products').findOne({ 
-      _id: new ObjectId(productId), 
-      isActive: true 
+    const product = await db.collection('products').findOne({
+      _id: new ObjectId(productId),
+      isActive: true
     });
-    
+
     if (!product) {
       throw new Error('Producto no encontrado');
     }
@@ -42,7 +42,7 @@ class Cart {
     }
 
     const cart = await this.getOrCreateCart(userId);
-    
+
     // Buscar si el producto ya está en el carrito
     const existingItemIndex = cart.items.findIndex(
       item => item.productId.toString() === productId.toString()
@@ -94,10 +94,15 @@ class Cart {
     } else {
       // Verificar stock
       const db = getDatabase();
-      const product = await db.collection('products').findOne({ 
-        _id: new ObjectId(productId), 
-        isActive: true 
+      const product = await db.collection('products').findOne({
+        _id: new ObjectId(productId),
+        isActive: true
       });
+
+      // FIX: Check if product exists before accessing product.stock
+      if (!product) {
+        throw new Error('Producto no encontrado o inactivo');
+      }
 
       if (product.stock < quantity) {
         throw new Error('Stock insuficiente');
@@ -120,7 +125,7 @@ class Cart {
 
   static async removeItem(userId, productId) {
     const cart = await this.getOrCreateCart(userId);
-    
+
     cart.items = cart.items.filter(
       item => item.productId.toString() !== productId.toString()
     );
@@ -140,12 +145,12 @@ class Cart {
   static async clearCart(userId) {
     await this.collection().updateOne(
       { userId: new ObjectId(userId) },
-      { 
-        $set: { 
+      {
+        $set: {
           items: [],
           total: 0,
           updatedAt: new Date()
-        } 
+        }
       }
     );
   }
