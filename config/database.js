@@ -11,14 +11,14 @@ const connectToDatabase = async () => {
   if (db) {
     return db;
   }
-  
+
   // Si ya estamos en proceso de conexión, retornar la promesa existente
   if (isConnecting) {
     return connectionPromise;
   }
 
   isConnecting = true;
-  
+
   try {
     connectionPromise = new Promise(async (resolve, reject) => {
       try {
@@ -26,10 +26,10 @@ const connectToDatabase = async () => {
           useNewUrlParser: true,
           useUnifiedTopology: true,
           maxPoolSize: 10,
-          serverSelectionTimeoutMS: 5000,
-          socketTimeoutMS: 45000,
+          serverSelectionTimeoutMS: 30000, // Increased from 5000ms to 30000ms for serverless
+          socketTimeoutMS: 60000, // Increased from 45000ms to 60000ms
         });
-        
+
         await client.connect();
         db = client.db();
         console.log('✅ Conectado a MongoDB');
