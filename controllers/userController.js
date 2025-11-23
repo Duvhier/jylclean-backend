@@ -12,7 +12,7 @@ exports.getUsers = async (req, res) => {
       .project({ password: 0 }) // Excluir contraseñas
       .sort({ createdAt: -1 })
       .toArray();
-    
+
     res.json(successResponse(users, 'Usuarios obtenidos exitosamente'));
   } catch (error) {
     res.status(500).json(errorResponse('Error obteniendo usuarios'));
@@ -45,23 +45,23 @@ exports.updateUser = async (req, res) => {
     const { name, email, role, isActive } = req.body;
 
     const db = getDatabase();
-    
+
     // Verificar que el usuario existe
-    const existingUser = await db.collection('users').findOne({ 
-      _id: new ObjectId(id) 
+    const existingUser = await db.collection('users').findOne({
+      _id: new ObjectId(id)
     });
-    
+
     if (!existingUser) {
       return res.status(404).json(errorResponse('Usuario no encontrado'));
     }
 
     // Verificar si el email ya está en uso por otro usuario
     if (email && email !== existingUser.email) {
-      const emailExists = await db.collection('users').findOne({ 
-        email, 
-        _id: { $ne: new ObjectId(id) } 
+      const emailExists = await db.collection('users').findOne({
+        email,
+        _id: { $ne: new ObjectId(id) }
       });
-      
+
       if (emailExists) {
         return res.status(400).json(errorResponse('El email ya está en uso'));
       }
@@ -74,7 +74,9 @@ exports.updateUser = async (req, res) => {
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (role) updateData.role = role;
+    if (role) updateData.role = role;
     if (typeof isActive === 'boolean') updateData.isActive = isActive;
+    if (req.body.image) updateData.image = req.body.image;
 
     await db.collection('users').updateOne(
       { _id: new ObjectId(id) },
@@ -103,11 +105,11 @@ exports.deleteUser = async (req, res) => {
     }
 
     const db = getDatabase();
-    
-    const user = await db.collection('users').findOne({ 
-      _id: new ObjectId(id) 
+
+    const user = await db.collection('users').findOne({
+      _id: new ObjectId(id)
     });
-    
+
     if (!user) {
       return res.status(404).json(errorResponse('Usuario no encontrado'));
     }
@@ -115,11 +117,11 @@ exports.deleteUser = async (req, res) => {
     // Soft delete - marcar como inactivo
     await db.collection('users').updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
+      {
+        $set: {
           isActive: false,
           updatedAt: new Date()
-        } 
+        }
       }
     );
 
